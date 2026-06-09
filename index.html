@@ -12,22 +12,23 @@ body {
     color: white;
 }
 
-/* NEON HEADER */
+/* HEADER */
 header {
     display: flex;
     justify-content: space-between;
     padding: 15px;
     background: #0b0014;
-    box-shadow: 0 0 15px #ff00ff;
+    box-shadow: 0 0 20px #ff00ff;
 }
 
+/* BUTTONS */
 button {
     background: transparent;
     border: 1px solid #ff00ff;
     color: white;
-    padding: 8px;
-    cursor: pointer;
+    padding: 6px 10px;
     margin-left: 5px;
+    cursor: pointer;
 }
 
 button:hover {
@@ -37,7 +38,7 @@ button:hover {
 /* GRID */
 .container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 15px;
     padding: 15px;
 }
@@ -45,7 +46,7 @@ button:hover {
 .card {
     background: #120022;
     border: 1px solid #ff00ff;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
     transition: 0.3s;
@@ -53,12 +54,12 @@ button:hover {
 
 .card:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 20px #ff00ff;
+    box-shadow: 0 0 25px #ff00ff;
 }
 
 .card img {
     width: 100%;
-    height: 140px;
+    height: 150px;
     object-fit: cover;
 }
 
@@ -70,25 +71,26 @@ button:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.85);
 }
 
 .modal-content {
     background: #120022;
     width: 80%;
+    max-width: 600px;
     margin: 5% auto;
     padding: 20px;
     border: 1px solid #00ffff;
+    border-radius: 10px;
 }
 
 input, textarea {
     width: 100%;
     margin-top: 5px;
-    padding: 5px;
-}
-
-.lang {
-    margin: 5px;
+    padding: 6px;
+    background: #1a002f;
+    color: white;
+    border: 1px solid #ff00ff;
 }
 </style>
 </head>
@@ -99,11 +101,9 @@ input, textarea {
     <div>🌍 TimeToTravel</div>
 
     <div>
-        <button class="lang" onclick="setLang('ru')">RU</button>
-        <button class="lang" onclick="setLang('kg')">KG</button>
-        <button class="lang" onclick="setLang('en')">EN</button>
-
-        <button onclick="openMap()">🗺️ Map</button>
+        <button onclick="setLang('ru')">RU</button>
+        <button onclick="setLang('kg')">KG</button>
+        <button onclick="setLang('en')">EN</button>
     </div>
 </header>
 
@@ -113,29 +113,30 @@ input, textarea {
 <div class="modal" id="modal">
     <div class="modal-content">
         <h2 id="title"></h2>
-        <img id="img" style="width:100%">
+        <img id="img" style="width:100%; border-radius:10px;">
         <p id="desc"></p>
 
-        <h3>⭐ Rating</h3>
+        <h3>⭐ Rating (1-5)</h3>
         <input id="rating" type="number" min="1" max="5">
 
         <h3>💬 Review</h3>
         <textarea id="review"></textarea>
+
         <button onclick="saveReview()">Save</button>
+        <button onclick="closeModal()">Close</button>
 
         <div id="reviews"></div>
-
-        <button onclick="closeModal()">Close</button>
     </div>
 </div>
 
 <script>
 let lang = "ru";
+let current = null;
 
 let data = [
     {
         id: 1,
-        img: "https://picsum.photos/400/200?1",
+        img: "https://picsum.photos/400/250?1",
         ru: "Горы Ала-Тоо",
         kg: "Ала-Тоо тоолору",
         en: "Ala-Too Mountains",
@@ -147,19 +148,17 @@ let data = [
     },
     {
         id: 2,
-        img: "https://picsum.photos/400/200?2",
-        ru: "Озеро Иссык-Куль",
+        img: "https://picsum.photos/400/250?2",
+        ru: "Иссык-Куль",
         kg: "Ысык-Көл",
         en: "Issyk-Kul Lake",
         desc: {
-            ru: "Большое озеро",
-            kg: "Чоң көл",
-            en: "Big lake"
+            ru: "Горное озеро",
+            kg: "Тоо көлү",
+            en: "Mountain lake"
         }
     }
 ];
-
-let current = null;
 
 function render(){
     let list = document.getElementById("list");
@@ -169,7 +168,7 @@ function render(){
         list.innerHTML += `
         <div class="card" onclick="openPlace(${p.id})">
             <img src="${p.img}">
-            <h3>${p[lang]}</h3>
+            <h3 style="padding:10px">${p[lang]}</h3>
         </div>`;
     });
 }
@@ -180,7 +179,7 @@ function setLang(l){
 }
 
 function openPlace(id){
-    current = data.find(p=>p.id==id);
+    current = data.find(p=>p.id===id);
 
     document.getElementById("modal").style.display = "block";
     document.getElementById("title").innerText = current[lang];
@@ -200,7 +199,7 @@ function saveReview(){
 
     if(!r || !t) return;
 
-    let key = "reviews_" + current.id;
+    let key = "ttt_" + current.id;
     let arr = JSON.parse(localStorage.getItem(key) || "[]");
 
     arr.push({rating:r, text:t});
@@ -210,19 +209,15 @@ function saveReview(){
 }
 
 function loadReviews(){
-    let key = "reviews_" + current.id;
+    let key = "ttt_" + current.id;
     let arr = JSON.parse(localStorage.getItem(key) || "[]");
 
     let box = document.getElementById("reviews");
-    box.innerHTML = "<h4>Reviews</h4>";
+    box.innerHTML = "<h3>Reviews</h3>";
 
     arr.forEach(r=>{
         box.innerHTML += `<p>⭐ ${r.rating} - ${r.text}</p>`;
     });
-}
-
-function openMap(){
-    alert("Map will be added next step 🗺️");
 }
 
 render();
