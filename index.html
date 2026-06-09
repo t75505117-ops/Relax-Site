@@ -2,79 +2,93 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Travel Places</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<title>TimeToTravel</title>
 
 <style>
 body {
     margin: 0;
     font-family: Arial;
-    background: #0f172a;
+    background: #05010a;
     color: white;
 }
 
-/* TOP BAR */
+/* NEON HEADER */
 header {
     display: flex;
     justify-content: space-between;
-    padding: 10px;
-    background: #111827;
+    padding: 15px;
+    background: #0b0014;
+    box-shadow: 0 0 15px #ff00ff;
 }
 
-input {
+button {
+    background: transparent;
+    border: 1px solid #ff00ff;
+    color: white;
     padding: 8px;
-    width: 200px;
+    cursor: pointer;
+    margin-left: 5px;
 }
 
-/* LAYOUT */
+button:hover {
+    box-shadow: 0 0 10px #00ffff;
+}
+
+/* GRID */
 .container {
-    display: flex;
-}
-
-/* MAP */
-#map {
-    height: 100vh;
-    width: 40%;
-}
-
-/* FEED */
-.feed {
-    width: 60%;
-    height: 100vh;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    padding: 15px;
 }
 
 .card {
-    height: 100vh;
-    scroll-snap-align: start;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    border-bottom: 1px solid #222;
-    padding: 20px;
+    background: #120022;
+    border: 1px solid #ff00ff;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #ff00ff;
 }
 
 .card img {
-    width: 80%;
-    border-radius: 10px;
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
 }
 
-/* LOGIN */
-.login {
+/* MODAL */
+.modal {
+    display: none;
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #1f2937;
-    padding: 20px;
-    border-radius: 10px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
 }
-button {
-    padding: 8px;
-    cursor: pointer;
+
+.modal-content {
+    background: #120022;
+    width: 80%;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #00ffff;
+}
+
+input, textarea {
+    width: 100%;
+    margin-top: 5px;
+    padding: 5px;
+}
+
+.lang {
+    margin: 5px;
 }
 </style>
 </head>
@@ -82,86 +96,136 @@ button {
 <body>
 
 <header>
-    <h3>Travel App</h3>
-    <input id="search" placeholder="Поиск мест...">
-    <button onclick="logout()">Выйти</button>
+    <div>🌍 TimeToTravel</div>
+
+    <div>
+        <button class="lang" onclick="setLang('ru')">RU</button>
+        <button class="lang" onclick="setLang('kg')">KG</button>
+        <button class="lang" onclick="setLang('en')">EN</button>
+
+        <button onclick="openMap()">🗺️ Map</button>
+    </div>
 </header>
 
-<div class="container">
-    <div id="map"></div>
+<div class="container" id="list"></div>
 
-    <div class="feed" id="feed"></div>
+<!-- MODAL -->
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <h2 id="title"></h2>
+        <img id="img" style="width:100%">
+        <p id="desc"></p>
+
+        <h3>⭐ Rating</h3>
+        <input id="rating" type="number" min="1" max="5">
+
+        <h3>💬 Review</h3>
+        <textarea id="review"></textarea>
+        <button onclick="saveReview()">Save</button>
+
+        <div id="reviews"></div>
+
+        <button onclick="closeModal()">Close</button>
+    </div>
 </div>
-
-<!-- LOGIN -->
-<div class="login" id="loginBox">
-    <h3>Вход</h3>
-    <input id="username" placeholder="Имя">
-    <button onclick="login()">Войти</button>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// ---------------- USERS ----------------
-let user = localStorage.getItem("user");
+let lang = "ru";
 
-function login() {
-    let name = document.getElementById("username").value;
-    if (!name) return;
-    localStorage.setItem("user", name);
-    location.reload();
-}
-
-function logout() {
-    localStorage.removeItem("user");
-    location.reload();
-}
-
-if (user) {
-    document.getElementById("loginBox").style.display = "none";
-}
-
-// ---------------- MAP ----------------
-let map = L.map('map').setView([40.5, 72.8], 10);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-}).addTo(map);
-
-let places = [
-    {name:"Парк", lat:40.5, lng:72.8, img:"https://picsum.photos/400/300?1"},
-    {name:"Горы", lat:40.7, lng:72.6, img:"https://picsum.photos/400/300?2"},
-    {name:"Озеро", lat:40.6, lng:72.9, img:"https://picsum.photos/400/300?3"},
+let data = [
+    {
+        id: 1,
+        img: "https://picsum.photos/400/200?1",
+        ru: "Горы Ала-Тоо",
+        kg: "Ала-Тоо тоолору",
+        en: "Ala-Too Mountains",
+        desc: {
+            ru: "Красивые горы Кыргызстана",
+            kg: "Кыргызстандын кооз тоолору",
+            en: "Beautiful mountains of Kyrgyzstan"
+        }
+    },
+    {
+        id: 2,
+        img: "https://picsum.photos/400/200?2",
+        ru: "Озеро Иссык-Куль",
+        kg: "Ысык-Көл",
+        en: "Issyk-Kul Lake",
+        desc: {
+            ru: "Большое озеро",
+            kg: "Чоң көл",
+            en: "Big lake"
+        }
+    }
 ];
 
-// markers
-places.forEach(p=>{
-    L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name);
-});
+let current = null;
 
-// ---------------- FEED ----------------
-let feed = document.getElementById("feed");
+function render(){
+    let list = document.getElementById("list");
+    list.innerHTML = "";
 
-function loadFeed(data){
-    feed.innerHTML = "";
     data.forEach(p=>{
-        feed.innerHTML += `
-        <div class="card">
-            <h2>${p.name}</h2>
+        list.innerHTML += `
+        <div class="card" onclick="openPlace(${p.id})">
             <img src="${p.img}">
-            <p>Отзывы: ${user ? "Написать отзыв..." : "Войдите чтобы писать"}</p>
-        </div>
-        `;
+            <h3>${p[lang]}</h3>
+        </div>`;
     });
 }
-loadFeed(places);
 
-// ---------------- SEARCH ----------------
-document.getElementById("search").addEventListener("input", function(){
-    let val = this.value.toLowerCase();
-    let filtered = places.filter(p => p.name.toLowerCase().includes(val));
-    loadFeed(filtered);
-});
+function setLang(l){
+    lang = l;
+    render();
+}
+
+function openPlace(id){
+    current = data.find(p=>p.id==id);
+
+    document.getElementById("modal").style.display = "block";
+    document.getElementById("title").innerText = current[lang];
+    document.getElementById("img").src = current.img;
+    document.getElementById("desc").innerText = current.desc[lang];
+
+    loadReviews();
+}
+
+function closeModal(){
+    document.getElementById("modal").style.display = "none";
+}
+
+function saveReview(){
+    let r = document.getElementById("rating").value;
+    let t = document.getElementById("review").value;
+
+    if(!r || !t) return;
+
+    let key = "reviews_" + current.id;
+    let arr = JSON.parse(localStorage.getItem(key) || "[]");
+
+    arr.push({rating:r, text:t});
+    localStorage.setItem(key, JSON.stringify(arr));
+
+    loadReviews();
+}
+
+function loadReviews(){
+    let key = "reviews_" + current.id;
+    let arr = JSON.parse(localStorage.getItem(key) || "[]");
+
+    let box = document.getElementById("reviews");
+    box.innerHTML = "<h4>Reviews</h4>";
+
+    arr.forEach(r=>{
+        box.innerHTML += `<p>⭐ ${r.rating} - ${r.text}</p>`;
+    });
+}
+
+function openMap(){
+    alert("Map will be added next step 🗺️");
+}
+
+render();
 </script>
 
 </body>
